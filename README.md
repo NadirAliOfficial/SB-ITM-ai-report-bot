@@ -148,4 +148,4 @@ The bot always picks the **most recent** file matching each pattern.
 - Orange `#F26022`
 - A4 format, bilingual EN/FR
 - Disclaimer: neutral technical research, not investment advice
-<!-- updated: 2023-10-17-r01 -->
+<!-- updated: 2024-02-14-r01 -->
