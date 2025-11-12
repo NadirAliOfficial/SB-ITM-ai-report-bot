@@ -149,3 +149,4 @@ The bot always picks the **most recent** file matching each pattern.
 - A4 format, bilingual EN/FR
 - Disclaimer: neutral technical research, not investment advice
 <!-- updated: 2025-11-24 -->
+
