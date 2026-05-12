@@ -1,13 +1,13 @@
 openai:
   api_key: "YOUR_OPENAI_API_KEY_HERE"
   model: "gpt-4o"
-  timeout: 60
-  max_tokens: 2000
+  timeout: 90
+  max_tokens: 4000
 
 inputs:
   scan_csv_folder: "C:\\stock_scanner\\output"
   scan_csv_pattern: "scan_*.csv"
-  bridge_bot_log_folder: "C:\\ibkr\\SB-ITM\\ibkr-risk-bot\\logs"
+  bridge_bot_log_folder: "C:\\ibkr-risk-bot\\logs"
   bridge_bot_log_pattern: "*_Bridge_Bot.log"
   regime_bot_log_folder: "C:\\stock_scanner\\output"
   regime_bot_log_pattern: "regime_*.log"
@@ -21,6 +21,6 @@ report:
   title_en: "SB-ITM Morning Candidate Review"
   title_fr: "SB-ITM Revue des Candidats du Matin"
   score_threshold: 3
-  max_candidates: 10
+  max_candidates: 15
 
 dry_run: false
