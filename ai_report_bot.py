@@ -73,21 +73,21 @@ def find_latest_file(folder: str, pattern: str) -> Path:
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
-def load_scan_csv(path: Path, score_threshold: int):
+def load_scan_csv(path: Path):
     all_count, candidates = 0, []
     with open(path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             all_count += 1
             if row.get("CandidateFlag") != "TRUE":
                 continue
-            try:
-                score = int(row["Score"])
-            except (ValueError, KeyError):
-                continue
-            if score >= score_threshold:
-                candidates.append(row)
-    candidates.sort(key=lambda r: int(r.get("Score", 0)), reverse=True)
+            candidates.append(row)
+    candidates.sort(key=lambda r: _safe_score(r), reverse=True)
     return candidates, len(candidates), all_count
+
+
+def _safe_score(r: dict) -> int:
+    try:    return int(r.get("Score", 0))
+    except: return 0
 
 
 def load_log_text(path: Path, max_lines: int = 200) -> str:
@@ -134,10 +134,11 @@ def extract_bridge_symbols(bridge_log: str) -> list[str]:
     return []
 
 
-def split_candidates(candidates: list[dict], selected_symbols: list[str]):
+def split_candidates(candidates: list[dict], selected_symbols: list[str], watchlist_min_score: int = 0):
     sel_set   = {s.upper() for s in selected_symbols}
     selected  = [r for r in candidates if r.get("Symbol", "").upper() in sel_set]
-    watchlist = [r for r in candidates if r.get("Symbol", "").upper() not in sel_set]
+    watchlist = [r for r in candidates if r.get("Symbol", "").upper() not in sel_set
+                 and _safe_score(r) >= watchlist_min_score]
     return selected, watchlist
 
 
@@ -229,7 +230,7 @@ def _styles() -> dict:
         "subsection":     S("ss",  fontName="Helvetica-Bold",  fontSize=10, textColor=ORANGE,    spaceBefore=6, spaceAfter=2),
         "body":           S("bd",  fontName="Helvetica",       fontSize=10, textColor=TEXT_DARK, leading=16, spaceAfter=4),
         "body_sm":        S("bs",  fontName="Helvetica",       fontSize=9,  textColor=TEXT_DARK, leading=14),
-        "th":             S("th",  fontName="Helvetica-Bold",  fontSize=7,  textColor=WHITE),
+        "th":             S("th",  fontName="Helvetica-Bold",  fontSize=8,  textColor=WHITE),
         "th_sm":          S("ths", fontName="Helvetica-Bold",  fontSize=7,  textColor=WHITE),
         "td":             S("td",  fontName="Helvetica",       fontSize=8,  textColor=TEXT_DARK, leading=11),
         "td_bold":        S("tdb", fontName="Helvetica-Bold",  fontSize=8,  textColor=TEXT_DARK),
@@ -345,8 +346,8 @@ def _regime_table(regime_data: dict, labels: dict, st: dict) -> Table:
     ]
     t = Table([headers, vals], colWidths=[cw]*5)
     t.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
         ("BOX",           (0, 0), (-1, -1), 0.5, MID_GRAY),
-        ("LINEBELOW",     (0, 0), (-1, 0),  1.5, ORANGE),
         ("LINEBEFORE",    (1, 0), (-1, -1), 0.3, MID_GRAY),
         ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
@@ -565,7 +566,7 @@ def _comparative_table(all_rows: list[dict], selected_symbols: list[str], st: di
             Paragraph(_pct(r.get("ResistanceDistance","")),         st["td"]),
             Paragraph(_scan_comment(r),                             st["td"]),
         ])
-    cws = [1.5*cm, 1.8*cm, 1.2*cm, 2.5*cm, 1.2*cm, 1.2*cm, 1.4*cm, 1.4*cm, CW-13.2*cm]
+    cws = [1.5*cm, 1.8*cm, 1.3*cm, 2.8*cm, 1.0*cm, 1.0*cm, 1.7*cm, 1.9*cm, CW-13.0*cm]
     t = Table(data, colWidths=cws, repeatRows=1)
     style = [
         ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
@@ -724,12 +725,14 @@ def generate_pdf(output_path: Path, lang: str, title: str, report_date: str,
     story.append(Spacer(1, 0.4*cm))
 
     # 4. Bridge Bot Selected Candidates
+    story.append(PageBreak())
     story += _sec(n, labels["s4_sel"], st); n += 1
     ai_selected = ai_content.get("selected_candidates", [])
     if ai_selected:
         ai_lu = {d.get("symbol", "").upper(): d for d in ai_selected}
-        for sym in selected_symbols:
-            story.append(PageBreak())
+        for i, sym in enumerate(selected_symbols):
+            if i > 0:
+                story.append(PageBreak())
             csv_row = csv_lu.get(sym.upper(), {"Symbol": sym})
             ai_data = ai_lu.get(sym.upper(), {"symbol": sym})
             story += _candidate_card(csv_row, ai_data, st, labels)
@@ -741,6 +744,7 @@ def generate_pdf(output_path: Path, lang: str, title: str, report_date: str,
     strong_watch = ai_content.get("strong_watchlist", [])
     second_watch = ai_content.get("secondary_watchlist", [])
     if strong_watch or second_watch:
+        story.append(PageBreak())
         story += _sec(n, labels["s5_add"], st); n += 1
         if strong_watch:
             story.append(Paragraph(labels["s5a_strong"], st["subsection"]))
@@ -762,11 +766,12 @@ def generate_pdf(output_path: Path, lang: str, title: str, report_date: str,
 
     # 7. Comparative Summary
     if all_candidates:
-        story += _sec(n, labels["s7_comp"], st); n += 1
-        story.append(_comparative_table(all_candidates, selected_symbols, st, labels))
+        comp_table = _comparative_table(all_candidates, selected_symbols, st, labels)
+        story.append(KeepTogether(_sec(n, labels["s7_comp"], st) + [comp_table])); n += 1
         story.append(Spacer(1, 0.4*cm))
 
     # 8. Final Conclusion
+    story.append(PageBreak())
     story += _sec(n, labels["s8_concl"], st); n += 1
     concl = ai_content.get("final_conclusion", "")
     if concl:
@@ -999,15 +1004,15 @@ def main():
             log.error("Missing input: %s", e); sys.exit(1)
 
     # Load data
-    score_threshold = int(cfg["report"].get("score_threshold", 3))
-    candidates, n_cand, n_total = load_scan_csv(scan_path, score_threshold)
-    log.info("Scan: %d total, %d candidates", n_total, n_cand)
+    watchlist_min_score = int(cfg["report"].get("watchlist_min_score", 3))
+    candidates, n_cand, n_total = load_scan_csv(scan_path)
+    log.info("Scan: %d total, %d flagged candidates", n_total, n_cand)
 
     bridge_log = load_log_text(bridge_path)
     regime_log = load_log_text(regime_path)
     regime_data    = extract_regime_data(regime_log)
     selected_syms  = extract_bridge_symbols(bridge_log)
-    selected, watchlist = split_candidates(candidates, selected_syms)
+    selected, watchlist = split_candidates(candidates, selected_syms, watchlist_min_score)
     log.info("Regime: %s | Bridge selected: %s", regime_data["regime"], selected_syms or "None")
 
     if dry_run:
@@ -1017,7 +1022,7 @@ def main():
     if mock:
         candidates     = _MOCK_CANDIDATES
         selected_syms  = _MOCK_SELECTED_SYMS
-        selected, watchlist = split_candidates(candidates, selected_syms)
+        selected, watchlist = split_candidates(candidates, selected_syms, watchlist_min_score)
         ai_response = _MOCK
         log.info("Using mock AI response")
     else:

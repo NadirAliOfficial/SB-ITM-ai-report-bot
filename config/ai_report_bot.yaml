@@ -20,7 +20,6 @@ outputs:
 report:
   title_en: "SB-ITM Morning Candidate Review"
   title_fr: "SB-ITM Revue des Candidats du Matin"
-  score_threshold: 3
-  max_candidates: 15
+  watchlist_min_score: 3
 
 dry_run: false
