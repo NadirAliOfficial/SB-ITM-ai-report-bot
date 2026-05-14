@@ -73,7 +73,7 @@ def find_latest_file(folder: str, pattern: str) -> Path:
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
-def load_scan_csv(path: Path, score_threshold: int, max_candidates: int):
+def load_scan_csv(path: Path, score_threshold: int):
     all_count, candidates = 0, []
     with open(path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
@@ -87,7 +87,7 @@ def load_scan_csv(path: Path, score_threshold: int, max_candidates: int):
             if score >= score_threshold:
                 candidates.append(row)
     candidates.sort(key=lambda r: int(r.get("Score", 0)), reverse=True)
-    return candidates[:max_candidates], len(candidates), all_count
+    return candidates, len(candidates), all_count
 
 
 def load_log_text(path: Path, max_lines: int = 200) -> str:
@@ -229,10 +229,10 @@ def _styles() -> dict:
         "subsection":     S("ss",  fontName="Helvetica-Bold",  fontSize=10, textColor=ORANGE,    spaceBefore=6, spaceAfter=2),
         "body":           S("bd",  fontName="Helvetica",       fontSize=10, textColor=TEXT_DARK, leading=16, spaceAfter=4),
         "body_sm":        S("bs",  fontName="Helvetica",       fontSize=9,  textColor=TEXT_DARK, leading=14),
-        "th":             S("th",  fontName="Helvetica-Bold",  fontSize=8,  textColor=WHITE),
-        "th_sm":          S("ths", fontName="Helvetica-Bold",  fontSize=7,  textColor=TEXT_MID),
-        "td":             S("td",  fontName="Helvetica",       fontSize=9,  textColor=TEXT_DARK),
-        "td_bold":        S("tdb", fontName="Helvetica-Bold",  fontSize=9,  textColor=TEXT_DARK),
+        "th":             S("th",  fontName="Helvetica-Bold",  fontSize=7,  textColor=WHITE),
+        "th_sm":          S("ths", fontName="Helvetica-Bold",  fontSize=7,  textColor=WHITE),
+        "td":             S("td",  fontName="Helvetica",       fontSize=8,  textColor=TEXT_DARK, leading=11),
+        "td_bold":        S("tdb", fontName="Helvetica-Bold",  fontSize=8,  textColor=TEXT_DARK),
         "td_lg":          S("tdl", fontName="Helvetica-Bold",  fontSize=11, textColor=TEXT_DARK, alignment=TA_CENTER, leading=14),
         "td_orange":      S("tdo", fontName="Helvetica-Bold",  fontSize=9,  textColor=ORANGE),
         "card_title":     S("crt", fontName="Helvetica-Bold",  fontSize=12, textColor=DARK_BLUE, leading=16),
@@ -410,7 +410,7 @@ def _candidate_card(csv_row: dict, ai: dict, st: dict, labels: dict) -> list:
         colWidths=[mcw]*6,
     )
     metric_t.setStyle(TableStyle([
-        ("LINEBELOW",     (0, 0), (-1, 0),  1.0, ORANGE),
+        ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
         ("LINEBEFORE",    (1, 0), (-1, -1), 0.3, MID_GRAY),
         ("BOX",           (0, 0), (-1, -1), 0.3, MID_GRAY),
         ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
@@ -729,6 +729,7 @@ def generate_pdf(output_path: Path, lang: str, title: str, report_date: str,
     if ai_selected:
         ai_lu = {d.get("symbol", "").upper(): d for d in ai_selected}
         for sym in selected_symbols:
+            story.append(PageBreak())
             csv_row = csv_lu.get(sym.upper(), {"Symbol": sym})
             ai_data = ai_lu.get(sym.upper(), {"symbol": sym})
             story += _candidate_card(csv_row, ai_data, st, labels)
@@ -999,9 +1000,8 @@ def main():
 
     # Load data
     score_threshold = int(cfg["report"].get("score_threshold", 3))
-    max_candidates  = int(cfg["report"].get("max_candidates", 15))
-    candidates, n_cand, n_total = load_scan_csv(scan_path, score_threshold, max_candidates)
-    log.info("Scan: %d total, %d candidates, showing top %d", n_total, n_cand, len(candidates))
+    candidates, n_cand, n_total = load_scan_csv(scan_path, score_threshold)
+    log.info("Scan: %d total, %d candidates", n_total, n_cand)
 
     bridge_log = load_log_text(bridge_path)
     regime_log = load_log_text(regime_path)
