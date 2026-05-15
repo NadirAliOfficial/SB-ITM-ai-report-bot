@@ -150,6 +150,23 @@ Each candidate row includes scanner flags: VolumeConfirmed, VolatilityFlag, Rebo
 TwoStrongGreenCandle, LiquidityFlag, MA200Slope, WeeksAboveMA200, VeryCloseToSupport.
 Ground every analysis in these actual flag values — do not invent data.
 
+STRICT LANGUAGE RULES — apply to both English and French:
+- NEVER use: "potential upside", "potential upward", "signals potential", "potential for upward moves",
+  "upward corrections", "could rise", "may rise", "bullish potential", "upside potential", or any
+  phrasing that implies a price prediction or directional recommendation.
+- ALWAYS use neutral, rules-based wording such as:
+  EN: "resistance distance remains available", "technical rebound pattern detected",
+      "volume condition confirmed", "support proximity remains favorable under the scoring model",
+      "market breadth remains constructive", "volatility moderate", "participation remains favorable"
+  FR: "la distance de résistance reste disponible", "configuration de rebond technique détectée",
+      "condition de volume confirmée", "la proximité du support reste favorable selon le modèle de scoring",
+      "la participation de marché reste favorable", "volatilité modérée",
+      "environnement de marché constructif", "configuration de rebond technique"
+- French must be natural professional financial French — avoid literal machine translations.
+  BAD: "environnement proactif", "corrections haussières potentielles", "largeur saine", "réflexion modérée"
+  GOOD: "environnement de marché constructif", "configuration de rebond technique",
+        "la participation de marché reste favorable", "volatilité modérée"
+
 Generate a JSON with two top-level keys: "en" and "fr". Each contains:
   executive_summary    — 2-3 sentences summarising today's picture, referencing actual scan totals and selected symbols
   key_observations     — list of 4-6 concise bullet strings grounded in actual flag data
@@ -495,7 +512,7 @@ def _watchlist_table(rows: list[dict], csv_lookup: dict, st: dict, labels: dict)
             Paragraph(_pct(csv.get("ResistanceDistance","")), st["td"]),
             Paragraph(obs,                          st["td"]),
         ])
-    cws = [1.5*cm, 3.0*cm, 1.2*cm, 1.3*cm, 1.3*cm, 1.5*cm, 1.5*cm, CW-11.3*cm]
+    cws = [1.7*cm, 2.7*cm, 1.2*cm, 1.2*cm, 1.2*cm, 1.5*cm, 1.9*cm, CW-11.4*cm]
     t = Table(data, colWidths=cws, repeatRows=1)
     style = [
         ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
@@ -549,7 +566,7 @@ def _scan_comment(r: dict) -> str:
 def _comparative_table(all_rows: list[dict], selected_symbols: list[str], st: dict, labels: dict) -> Table:
     sel_set = {s.upper() for s in selected_symbols}
     headers = [Paragraph(h, st["th"]) for h in
-               ["Symbol", labels["role"], labels["w_score"], labels["m_profile"],
+               ["Symbol", labels["role"], labels["w_score"],
                 "RSI", "ATR %", labels["w_sup"], labels["w_res"], labels["scan_comment"]]]
     data = [headers]
     for r in all_rows:
@@ -559,14 +576,13 @@ def _comparative_table(all_rows: list[dict], selected_symbols: list[str], st: di
             Paragraph(sym,                                          st["td_bold"]),
             Paragraph(role,                                         st["td_orange"] if sym.upper() in sel_set else st["td"]),
             Paragraph(str(r.get("Score", "")),                      st["td"]),
-            Paragraph(r.get("Profile", ""),                         st["td"]),
             Paragraph(str(r.get("RSI14", "")),                      st["td"]),
-            Paragraph(_pct(r.get("ATR_Pct","")),                    st["td"]),
+            Paragraph(f"{r.get('ATR_Pct', '')}%",                   st["td"]),
             Paragraph(_pct(r.get("SupportDistance","")),            st["td"]),
             Paragraph(_pct(r.get("ResistanceDistance","")),         st["td"]),
             Paragraph(_scan_comment(r),                             st["td"]),
         ])
-    cws = [1.5*cm, 1.8*cm, 1.3*cm, 2.8*cm, 1.0*cm, 1.0*cm, 1.7*cm, 1.9*cm, CW-13.0*cm]
+    cws = [1.5*cm, 1.8*cm, 1.3*cm, 1.1*cm, 1.1*cm, 1.7*cm, 1.9*cm, CW-10.4*cm]
     t = Table(data, colWidths=cws, repeatRows=1)
     style = [
         ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
