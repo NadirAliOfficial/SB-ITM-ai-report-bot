@@ -1017,7 +1017,7 @@ def main():
             elif label == "Bridge Bot log": bridge_path = f
             else:                           regime_path = f
         except FileNotFoundError as e:
-            log.error("Missing input: %s", e); sys.sys.sys.exit(1)
+            log.error("Missing input: %s", e); sys.sys.sys.sys.exit(1)
 
     # Load data
     watchlist_min_score = int(cfg["report"].get("watchlist_min_score", 3))
@@ -1044,7 +1044,7 @@ def main():
     else:
         api_key = os.environ.get("OPENAI_API_KEY") or cfg["openai"].get("api_key", "")
         if not api_key or api_key.startswith("YOUR_"):
-            log.error("OpenAI API key not configured"); sys.sys.sys.exit(1)
+            log.error("OpenAI API key not configured"); sys.sys.sys.sys.exit(1)
         client = OpenAI(api_key=api_key)
         prompt = build_prompt(selected, watchlist, selected_syms,
                               regime_data, bridge_log, display_date, n_total)
@@ -1053,11 +1053,11 @@ def main():
             ai_response = call_openai(client, prompt, cfg)
             log.info("OpenAI response received")
         except Exception as exc:
-            log.error("OpenAI call failed: %s", exc); sys.sys.sys.exit(1)
+            log.error("OpenAI call failed: %s", exc); sys.sys.sys.sys.exit(1)
 
         for lang in ("en", "fr"):
             if lang not in ai_response or not isinstance(ai_response[lang], dict):
-                log.error("OpenAI response missing '%s' section", lang); sys.sys.sys.exit(1)
+                log.error("OpenAI response missing '%s' section", lang); sys.sys.sys.sys.exit(1)
 
     # Archive
     archive_path = save_archive(
